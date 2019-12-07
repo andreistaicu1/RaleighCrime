@@ -114,3 +114,80 @@ write.csv(assault_counts, file= "AssaultCounts.csv")
 #cant tell how the data is stored. the columns are temporal and the rows spatial, 
 #but the days and hours were merged so it could be viewed 2D in a csv file
 #i think it is basically in howr of the week format, but im not sure...
+
+
+assault_hotspot_indexes =intersect(which((assault$regionx>=6&assault$regionx<=7)),which((assault$regiony>=3&assault$regiony<=5)))
+
+assault_hotspot = assault[assault_hotspot_indexes,]
+
+se = assault[which(assault$district=='Southeast'),]
+d = assault[which(assault$district=='Downtown'),]
+n = assault[which(assault$district=='North'),]
+ne = assault[which(assault$district=='Northeast'),]
+nw = assault[which(assault$district=='Northwest'),]
+sw = assault[which(assault$district=='Southwest'),]
+
+plot(assault$longitude, assault$latitude)
+points(se$longitude, se$latitude, col ='light blue')
+points(d$longitude, d$latitude, col='green')
+points(n$longitude, n$latitude, col='blue')
+points(ne$longitude, ne$latitude, col='red')
+points(nw$longitude, nw$latitude, col='gray')
+points(sw$longitude, sw$latitude, col='orange')
+
+
+
+
+#only in hotspot region
+se = assault_hotspot[which(assault_hotspot$district=='Southeast'),]
+d = assault_hotspot[which(assault_hotspot$district=='Downtown'),]
+n = assault_hotspot[which(assault_hotspot$district=='North'),]
+ne = assault_hotspot[which(assault_hotspot$district=='Northeast'),]
+nw = assault_hotspot[which(assault_hotspot$district=='Northwest'),]
+sw = assault_hotspot[which(assault_hotspot$district=='Southwest'),]
+
+plot(assault$longitude, assault$latitude)
+points(se$longitude, se$latitude, col ='light blue')
+points(d$longitude, d$latitude, col='green')
+points(n$longitude, n$latitude, col='blue')
+points(ne$longitude, ne$latitude, col='red')
+points(nw$longitude, nw$latitude, col='gray')
+points(sw$longitude, sw$latitude, col='orange')
+
+
+for (i in 0:9){
+  abline(h=(maxlat-minlat)*i/9 +minlat, col='black')
+  abline(v=(maxlong-minlong)*i/9 +minlong, col='black')
+  
+}
+
+#------------------------------------------Heatmap
+model= read.csv("F://Rprojects/RaleighCrime/10x10 assault model.csv", header = FALSE)
+
+u1=matrix(model[,1], 10,10, byrow=TRUE)
+u1=u1[10:1,]
+
+rotate <- function(x) t(apply(x, 2, rev))
+u1=rotate(u1)
+image(u1)
+
+u1min = min(u1)
+u1max = max(u1)
+
+ubins=seq(u1min, u1max, length.out=10)
+
+cc<-colorRampPalette(c('blue', 'red'))(10)
+colors= matrix(0, 10,10)
+colors=cc[10]
+colors[which(u1<ubins[9])]=cc[9]
+colors[which(u1<ubins[8])]=cc[8]
+colors[which(u1<ubins[7])]=cc[7]
+colors[which(u1<ubins[6])]=cc[6]
+colors[which(u1<ubins[5])]=cc[5]
+colors[which(u1<ubins[4])]=cc[4]
+colors[which(u1<ubins[3])]=cc[3]
+colors[which(u1<ubins[2])]=cc[2]
+colors[which(u1<ubins[1])]=cc[1]
+
+
+plot(assault$longitude, assault$latitude, col = colors)
