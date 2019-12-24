@@ -76,28 +76,28 @@ maxlat = max(assault$latitude)
 minlong = min(assault$longitude)
 maxlong = max(assault$longitude)
 
-#normalize latitude and store as regiony 0 through 9
+#normalize latitude and store as regiony 0 through 24
 for (i in 1:length(assault$latitude)){
-  reg = ((assault$latitude[i]-minlat)/(maxlat-minlat))*9 
+  reg = ((assault$latitude[i]-minlat)/(maxlat-minlat))*24
   assault$regiony[i] = floor(reg)
 }
 
-#normalize longitude and store as regionx 1 through 10
+#normalize longitude and store as regionx 1 through 25
 for (i in 1:length(assault$longitude)){
-  reg = ((assault$longitude[i]-minlong)/(maxlong-minlong))*9+1
+  reg = ((assault$longitude[i]-minlong)/(maxlong-minlong))*24+1
   assault$regionx[i] = floor(reg)
 }
 
 #create region from regionx and region y
-#region should be from 1 to 100 and as (y)*10+x (row major)
+#region should be from 1 to 625 and as (y)*10+x (row major)
 for (i in 1:length(assault$regionx)){
-  assault$region[i]= assault$regionx[i]+(assault$regiony[i])*10
+  assault$region[i]= assault$regionx[i]+(assault$regiony[i])*25
 }
 
 
-assault_counts = array(rep(0,100*7*24),c(100, 7, 24))#region, day of the week, time of day
+assault_counts = array(rep(0,625*7*24),c(625, 7, 24))#region, day of the week, time of day
 
-for (i in 1:100){
+for (i in 1:625){
   for (j in 1:7){
     for(k in 1:24){
       ix_region = which(assault$region == i)
@@ -110,7 +110,7 @@ for (i in 1:100){
   }
 }
 
-write.csv(assault_counts, file= "AssaultCounts.csv")
+write.csv(assault_counts, file= "AssaultCounts2.csv")
 #cant tell how the data is stored. the columns are temporal and the rows spatial, 
 #but the days and hours were merged so it could be viewed 2D in a csv file
 #i think it is basically in howr of the week format, but im not sure...
@@ -191,3 +191,6 @@ colors[which(u1<ubins[1])]=cc[1]
 
 
 plot(assault$longitude, assault$latitude, col = colors)
+
+
+head(assault)
