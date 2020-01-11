@@ -1,4 +1,4 @@
-crime<-read.csv('F:/Rprojects/RaleighCrime/Raleigh Crime Original Data.gz')
+crime<-read.csv('/Users/astaicu/Desktop/RaleighCrime/Raleigh Crime Original Data.gz')
 
 
 str(crime)
@@ -162,7 +162,7 @@ for (i in 0:9){
 }
 
 #------------------------------------------Heatmap
-model= read.csv("F://Rprojects/RaleighCrime/10x10 assault model.csv", header = FALSE)
+model= read.csv("/Users/astaicu/Desktop/RaleighCrime/10x10 assault model.csv", header = FALSE)
 
 u1=matrix(model[,1], 10,10, byrow=TRUE)
 u1=u1[10:1,]
@@ -195,7 +195,7 @@ plot(assault$longitude, assault$latitude, col = colors)
 
 head(assault)
 
-rcf<-read.csv("F://Rprojects/RaleighCrime/25x25 assault model.csv")
+rcf<-read.csv("/Users/astaicu/Desktop/RaleighCrime/25x25 assault model.csv", header = FALSE)
 
 minlat = quantile(assault$latitude, .3)
 maxlat = quantile(assault$latitude, .7)
@@ -207,8 +207,10 @@ devtools::install_github("dkahle/ggmap", ref = "tidyup", force=TRUE)
 
 library(ggmap)
 #Set your API Key
-ggmap::register_google(key = "AIzaSyCWdZz7UpNsXl-fx0Y80O1yiJZyBn1nF7w")
+ggmap::register_google(key = "xxx")
 
+update.packages("scales")
+devtools::install_github("dkahle/ggmap")
 
 #map<-get_stamenmap(c(left=minlong, bottom=minlat, right=maxlong, top=maxlat), zoom = 5, maptype = "terrain", scale = 2)
 map<-get_googlemap(center = c(lon = mean(assault$longitude), lat = mean(assault$latitude)))
@@ -219,3 +221,30 @@ ggmap(map, extent = "device") +
   scale_alpha(range = c(0.1,0.6), guide=FALSE)+ 
   geom_point(aes(x = Longitude, y = Latitude,  colour = Initial.Type.Group), data = i2, size = 0.5) + 
   theme(legend.position="bottom")
+
+# SIMULATING DATA TO REPRESENT THE FIRST TENSOR LOCATION DATA IN BINS
+
+rcf[,1]
+sum_tensor1 <- sum(rcf[,1])
+percent_tensor1 <- rcf[,1]/sum_tensor1
+percent_tensor1
+
+
+x <- sample(1:625, 30822, replace = TRUE, prob = percent_tensor1)
+summary(x)
+table(x)
+sim_data <- matrix(x, nrow = 30822, ncol = 5, byrow = FALSE, dimnames = NULL)
+sim_data
+
+
+for (i in 1:30822) {
+  sim_data[i,2] <- sim_data[i,1]%%25
+  sim_data[i,3] <- (sim_data[i,1]-sim_data[i,2])/25
+}
+
+sim_data
+
+
+?c
+raleighmap <- get_map(location = c(lon=mean(assault$longitude), lat = mean(assault$latitude)), zoom = 11, maptype = "roadmap", scale = 2)
+??getmap
