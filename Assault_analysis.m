@@ -1,5 +1,5 @@
 close all
-assault2d = csvread('C://Users/akellyl/Documents/MATLAB/AssaultCounts.csv', 1,1);
+assault2d = csvread('/Users/astaicu/Desktop/RaleighCrime/AssaultCounts.csv', 1,1);
 size(assault2d);
 assault=zeros(100,7,24);
 size(assault);
@@ -108,4 +108,4 @@ space4= reshape(A.U{1}(:,4), 10, 10);
 space4=rot90(space4)
 imagesc(space4)
 
-csvwrite("F://Rprojects/RaleighCrime/10x10 assault model.csv", A.U{1});
+csvwrite("/Users/astaicu/Desktop/RaleighCrime/10x10 assault model.csv", A.U{1});
