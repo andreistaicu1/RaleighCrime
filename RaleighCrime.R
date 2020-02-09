@@ -195,27 +195,62 @@ plot(assault$longitude, assault$latitude, col = colors)
 
 head(assault)
 
-rcf<-read.csv("F://Rprojects/RaleighCrime/25x25 assault model.csv")
+rcf<-read.csv("F://Rprojects/RaleighCrime/25x25 assault model.csv", header = FALSE)
+lambda=c(1.5921,0.7749,0.3740,0.3413)
+freq=c()
+str(rcf$V1)
+rcf$V1
+for(j in 1:625){
+  freq[j]=rcf$V1[j]*lambda[1]+rcf$V2[j]*lambda[2]+rcf$V3[j]*lambda[3]+rcf$V4[j]*lambda[4]
+}
 
-minlat = quantile(assault$latitude, .3)
-maxlat = quantile(assault$latitude, .7)
-minlong = quantile(assault$longitude, .2)
-maxlong = quantile(assault$longitude, .8)
+sim_crimes= sample(1:625,size=1000, prob=freq, replace = TRUE)
 
-if(!requireNamespace("devtools")) {install.packages("devtools")}
-devtools::install_github("dkahle/ggmap", ref = "tidyup", force=TRUE)
+sim_counts=c(rep(0,625))
+for (i in 1:1000){
+  sim_counts[sim_crimes[i]]=sim_counts[sim_crimes[i]]+1
+}
 
+sim_counts_2D=matrix(sim_counts, nrow=25, ncol=25, byrow = FALSE)
+
+latrange=maxlat-minlat
+longrange=maxlong-minlong
+
+sim_coord_lat=matrix(data=rep(0,625), nrow=25, ncol=25)
+sim_coord_long=matrix(data=0, nrow=25, ncol=25)
+
+sim_assaults=matrix(data=0, nrow=0, ncol=2)
+for (j in 1:25){
+  for(i in 1:25){
+    sim_coord_lat[i,j]=((j-1)*latrange)/25 +minlat
+    sim_coord_long[i,j]=((i-1)*longrange)/25 +minlong
+    if(sim_counts_2D[i,j]!=0){
+      for(k in 1: sim_counts_2D[i,j]-1){
+        sim_assaults=rbind(sim_assaults,c(sim_coord_lat[i,j]+runif(1,0,latrange/25),sim_coord_long[i,j]+runif(1,0,longrange/25)))
+        
+      }
+    }
+  }
+}
+dim(sim_assaults)
+
+freq_2D=matrix(freq, nrow=25, ncol=25, byrow = FALSE)
+assaults_df=data.frame(lat=sim_assaults[,1], long=sim_assaults[,2], tint=)
 library(ggmap)
 #Set your API Key
-ggmap::register_google(key = "AIzaSyCWdZz7UpNsXl-fx0Y80O1yiJZyBn1nF7w")
-
-
+ggmap::register_google(key = "")
+lon=median(sim_assaults[,2])
+lat = median(sim_assaults[,1])
 #map<-get_stamenmap(c(left=minlong, bottom=minlat, right=maxlong, top=maxlat), zoom = 5, maptype = "terrain", scale = 2)
-map<-get_googlemap(center = c(lon = mean(assault$longitude), lat = mean(assault$latitude)))
-ggmap(map, extent = "device") +
-  geom_density2d(data = assault, aes(x=assault$longitude,y=assault$latitude),size = 0.3) +
-  stat_density2d(data=assault, aes(x=assault$longitude, y=assault$latitude, fill=..level.., alpha=..level..), size=0.01, bins=16, geom="polygon") +
-  scale_fill_gradient(low="yellow",high="red") +
-  scale_alpha(range = c(0.1,0.6), guide=FALSE)+ 
-  geom_point(aes(x = Longitude, y = Latitude,  colour = Initial.Type.Group), data = i2, size = 0.5) + 
-  theme(legend.position="bottom")
+map<-get_map(location = c(lon = lon, lat = lat),
+                   zoom = 10, size = c(640, 640), scale = 4, format = "png8", maptype = "roadmap",
+                   color = c("color", "bw"))
+ggmap(map, extent = "panel", maprange = FALSE,
+legend = "right", padding = 0.02, darken = c(0, "black"))+plot(assaults_df$long, assaults_df$lat)+
+  geom_density2d(data = assaults_df, aes(x=assaults_df$long,y=assaults_df$lat),size = 0.3)
+
+
+
+
+
+plot(assaults_df$long, assaults_df$lat, xlim=c(min(sim_assaults[,2]), min(sim_assaults[,2])+.5), ylim=c(max(sim_assaults[,1])-.5, max(sim_assaults[,1])))
