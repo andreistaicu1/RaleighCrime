@@ -1,76 +1,55 @@
 crime<-read.csv('F:/Rprojects/RaleighCrime/Raleigh Crime Original Data.gz')
+                  #import initial data into a data frame
 
 
-str(crime)
-head(crime)
-summary(crime)
-
-unique(crime$crime_category)#returns all unique types in the column
-##extracted burglary res and commerce
-
-ix_r =which(crime$crime_category == "BURGLARY/RESIDENTIAL")
-ix_c = which(crime$crime_category == "BURGLARY/COMMERCIAL")
-
-#str(crime$reported_year) returns type of year (integer)
-
-ix_year<- which(crime$reported_year== 2019)
-ix <- intersect(c(ix_c, ix_r), ix_year)
-
-
-
-C <-crime[ix,]
-dim(C)
-dim(crime)
-length(ix_c)
-unique(crime$reported_year)
-
-xc <-matrix(0, 7, 24)
-xr <-matrix(0, 7, 24)
-
-#days_of_week= c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
-days_of_week = unique(crime$reported_dayofwk)
-
-for (i in 1:7){
-  for (j in 0:23){
-    ix_day=which(crime$reported_dayofwk == days_of_week[i])
-    ix_hour = which(crime$reported_hour==j)
-    xr[i,j+1] = length(intersect(intersect(ix_day, ix_hour), ix_r))
-    xc[i,j+1] = length(intersect(intersect(ix_day, ix_hour), ix_c))
-  }
-}
-
-
-write.csv(xr, file= "ResBurglaryCounts.csv")
-write.csv(xc, file= "ComBurglaryCounts.csv")
-
-#---------------------------------------------------------
 #Isolating assaults for further analysis
 #---------------------------------------------------------
-ixconsolidated<-which(table(crime$crime_category)>1000)
 
-indexes<-which(crime$crime_category %in% names(ixconsolidated))
-consolidated <- crime[indexes,]
-
-
-ixassault <-which(crime$crime_category == 'ASSAULT')
-ixlocation <- which(crime$latitude!='NA')
-assault_with_location<- intersect(ixassault, ixlocation)
+ixassault <-which(crime$crime_category == 'ASSAULT')#returns index of all assaults
+ixlocation <- which(crime$latitude!='NA')           #returns index of all crimes with location
+assault_with_location<- intersect(ixassault, ixlocation) #returns only assaults that also have location data
 
 assault<-crime[assault_with_location,]
 
-length(unique(assault$longitude))
-length(unique(assault$latitude))
+#str(assault)#30,822 observations of 27 variables
 
 
+#create basic scatterplot of the data points
 plot(assault$longitude, assault$latitude)
 
+#add colors to represent the districts given in the data set. these are insufficient for thurough 
+#analysis and are subjective as they overlap as a result, next a new spatial grid is created
+se = assault[which(assault$district=='Southeast'),]
+d = assault[which(assault$district=='Downtown'),]
+n = assault[which(assault$district=='North'),]
+ne = assault[which(assault$district=='Northeast'),]
+nw = assault[which(assault$district=='Northwest'),]
+sw = assault[which(assault$district=='Southwest'),]
+
+plot(assault$longitude, assault$latitude, main='Assault Latitude and Longitude', xlab='Longitude', ylab='Latitude',cex.axis=1.5, cex.lab=1.6, cex.main=1.8,font=2)
+points(se$longitude, se$latitude, col ='#800080', font=2)
+points(d$longitude, d$latitude, col='green', font=2)
+points(n$longitude, n$latitude, col='blue', font=2)
+points(ne$longitude, ne$latitude, col='red', font=2)
+points(nw$longitude, nw$latitude, col='black', font=2)
+points(sw$longitude, sw$latitude, col='orange', font=2)
+
+#these lines show where the bins were divided
+for (i in 0:24){
+  abline(h=(maxlat-minlat)*i/24 +minlat, col='black')
+  abline(v=(maxlong-minlong)*i/24 +minlong, col='black')
+  
+}
 
 
+# divide lat, long. into a 25x25 grid of bins. Should be small enough to capture the patterns in the 
+#difference between different locations. all bins will divide the lattitude and longitude where data exists
+#evenly. in other words, the minimum lattitude will be the edge of the first y region
 
-# binning the lat, long.
-assault$regionx = 0
+#initializes all data to be in region (0,0)
+assault$regionx = 0 
 assault$regiony = 0
-assault$region =0
+assault$region =0 #the region combines region x and y into one dimension in a row major fashion
 minlat = min(assault$latitude)
 maxlat = max(assault$latitude)
 minlong = min(assault$longitude)
@@ -95,7 +74,9 @@ for (i in 1:length(assault$regionx)){
 }
 
 
-assault_counts = array(rep(0,625*7*24),c(625, 7, 24))#region, day of the week, time of day
+assault_counts = array(rep(0,625*7*24),c(625, 7, 24))#store as ordered triple:
+                                                    #(region, day of the week, time of day)
+                                                    #initialize all values to 0
 
 for (i in 1:625){
   for (j in 1:7){
@@ -104,113 +85,55 @@ for (i in 1:625){
       ix_day=which(assault$reported_dayofwk == days_of_week[j])
       ix_hour = which(assault$reported_hour==k-1)
       count =length(intersect(ix_region, intersect(ix_day, ix_hour)))
-      assault_counts[i,j,k]=count
+      assault_counts[i,j,k]=count #stores the number of assaults at each position in the data cube
         
     }
   }
 }
 
-write.csv(assault_counts, file= "AssaultCounts2.csv")
-#cant tell how the data is stored. the columns are temporal and the rows spatial, 
-#but the days and hours were merged so it could be viewed 2D in a csv file
-#i think it is basically in howr of the week format, but im not sure...
-
-
-assault_hotspot_indexes =intersect(which((assault$regionx>=6&assault$regionx<=7)),which((assault$regiony>=3&assault$regiony<=5)))
-
-assault_hotspot = assault[assault_hotspot_indexes,]
-
-se = assault[which(assault$district=='Southeast'),]
-d = assault[which(assault$district=='Downtown'),]
-n = assault[which(assault$district=='North'),]
-ne = assault[which(assault$district=='Northeast'),]
-nw = assault[which(assault$district=='Northwest'),]
-sw = assault[which(assault$district=='Southwest'),]
-
-plot(assault$longitude, assault$latitude)
-points(se$longitude, se$latitude, col ='light blue')
-points(d$longitude, d$latitude, col='green')
-points(n$longitude, n$latitude, col='blue')
-points(ne$longitude, ne$latitude, col='red')
-points(nw$longitude, nw$latitude, col='gray')
-points(sw$longitude, sw$latitude, col='orange')
+write.csv(assault_counts, file= "AssaultCounts2.csv")#this ends up compressing the day and hour dimensions
+                                                      #it is essentially the same as hour of the week
+                                                      #this data was further analyzed in matlab
 
 
 
 
-#only in hotspot region
-se = assault_hotspot[which(assault_hotspot$district=='Southeast'),]
-d = assault_hotspot[which(assault_hotspot$district=='Downtown'),]
-n = assault_hotspot[which(assault_hotspot$district=='North'),]
-ne = assault_hotspot[which(assault_hotspot$district=='Northeast'),]
-nw = assault_hotspot[which(assault_hotspot$district=='Northwest'),]
-sw = assault_hotspot[which(assault_hotspot$district=='Southwest'),]
-
-plot(assault$longitude, assault$latitude)
-points(se$longitude, se$latitude, col ='light blue')
-points(d$longitude, d$latitude, col='green')
-points(n$longitude, n$latitude, col='blue')
-points(ne$longitude, ne$latitude, col='red')
-points(nw$longitude, nw$latitude, col='gray')
-points(sw$longitude, sw$latitude, col='orange')
+#create elevation map of the spatial component of assaults
+library(ggmap)
+#Set your API Key
+#ggmap::register_google(key = "AIzaSyB7SOHnpbF2R4vZWdlcaDGf8er1wS0m76Y") #UNCOMMENT THIS LINE TO RUN-----------------------------------------------------
+lon=median(assault$longitude)
+lat = median(assault$latitude)
+map<-get_map(location = c(lon = lon, lat = lat),zoom = 11, size = c(640, 640), scale = 4,
+             format = "png8", maptype = "roadmap", color = c("color", "bw"))
+ggmap(map, extent = "panel", maprange = FALSE,legend = "right", padding = 0.02, darken = c(0, "black"),
+      cex.lab=5, cex.axis=5)+plot(assault$longitude, assault$latitude)+
+      geom_density2d(data = assault, aes(x=assault$longitude,y=assault$latitude),size = 0.9)
 
 
-for (i in 0:9){
-  abline(h=(maxlat-minlat)*i/9 +minlat, col='black')
-  abline(v=(maxlong-minlong)*i/9 +minlong, col='black')
-  
-}
-
-#------------------------------------------Heatmap
-model= read.csv("F://Rprojects/RaleighCrime/10x10 assault model.csv", header = FALSE)
-
-u1=matrix(model[,1], 10,10, byrow=TRUE)
-u1=u1[10:1,]
-
-rotate <- function(x) t(apply(x, 2, rev))
-u1=rotate(u1)
-image(u1)
-
-u1min = min(u1)
-u1max = max(u1)
-
-ubins=seq(u1min, u1max, length.out=10)
-
-cc<-colorRampPalette(c('blue', 'red'))(10)
-colors= matrix(0, 10,10)
-colors=cc[10]
-colors[which(u1<ubins[9])]=cc[9]
-colors[which(u1<ubins[8])]=cc[8]
-colors[which(u1<ubins[7])]=cc[7]
-colors[which(u1<ubins[6])]=cc[6]
-colors[which(u1<ubins[5])]=cc[5]
-colors[which(u1<ubins[4])]=cc[4]
-colors[which(u1<ubins[3])]=cc[3]
-colors[which(u1<ubins[2])]=cc[2]
-colors[which(u1<ubins[1])]=cc[1]
 
 
-plot(assault$longitude, assault$latitude, col = colors)
 
 
-head(assault)
-
+#------------------------------------------Imported from Matlab------------------------------
+#array of assault probabilities in each ordered triple of the data cube
 rcf<-read.csv("F://Rprojects/RaleighCrime/25x25 assault model.csv", header = FALSE)
-lambda=c(1.5921,0.7749,0.3740,0.3413)
-freq=c()
+lambda=c(1.5921,0.7749,0.3740,0.3413)#weightings of each tensor in the approximation
+freq=c() # the probability of an assault in the ith region is the product of the coefficient (lambda) and the value in the ith position of each tensor
 str(rcf$V1)
 rcf$V1
 for(j in 1:625){
   freq[j]=rcf$V1[j]*lambda[1]+rcf$V2[j]*lambda[2]+rcf$V3[j]*lambda[3]+rcf$V4[j]*lambda[4]
 }
 
-sim_crimes= sample(1:625,size=1000, prob=freq, replace = TRUE)
+sim_crimes= sample(1:625,size=1000, prob=freq, replace = TRUE)#simulate 1000 assaults 
 
 sim_counts=c(rep(0,625))
 for (i in 1:1000){
   sim_counts[sim_crimes[i]]=sim_counts[sim_crimes[i]]+1
 }
 
+#store crime counts in 2d matrix
 sim_counts_2D=matrix(sim_counts, nrow=25, ncol=25, byrow = FALSE)
 
 latrange=maxlat-minlat
@@ -232,25 +155,21 @@ for (j in 1:25){
     }
   }
 }
-dim(sim_assaults)
+
+
 
 freq_2D=matrix(freq, nrow=25, ncol=25, byrow = FALSE)
-assaults_df=data.frame(lat=sim_assaults[,1], long=sim_assaults[,2], tint=)
+assaults_df=data.frame(lat=sim_assaults[,1], long=sim_assaults[,2])
+
+#generate elevation map with simulated data
 library(ggmap)
 #Set your API Key
-ggmap::register_google(key = "")
+#ggmap::register_google(key = "AIzaSyB7SOHnpbF2R4vZWdlcaDGf8er1wS0m76Y") #UNCOMMENT THIS LINE TO RUN------------------------------------------------
 lon=median(sim_assaults[,2])
 lat = median(sim_assaults[,1])
-#map<-get_stamenmap(c(left=minlong, bottom=minlat, right=maxlong, top=maxlat), zoom = 5, maptype = "terrain", scale = 2)
 map<-get_map(location = c(lon = lon, lat = lat),
-                   zoom = 10, size = c(640, 640), scale = 4, format = "png8", maptype = "roadmap",
+                   zoom = 11, size = c(640, 640), scale = 4, format = "png8", maptype = "roadmap",
                    color = c("color", "bw"))
 ggmap(map, extent = "panel", maprange = FALSE,
-legend = "right", padding = 0.02, darken = c(0, "black"))+plot(assaults_df$long, assaults_df$lat)+
-  geom_density2d(data = assaults_df, aes(x=assaults_df$long,y=assaults_df$lat),size = 0.3)
-
-
-
-
-
-plot(assaults_df$long, assaults_df$lat, xlim=c(min(sim_assaults[,2]), min(sim_assaults[,2])+.5), ylim=c(max(sim_assaults[,1])-.5, max(sim_assaults[,1])))
+legend = "right", padding = 0.02, darken = c(0, "black"),cex.lab=5, cex.axis=5)+plot(assaults_df$long, assaults_df$lat)+
+  geom_density2d(data = assaults_df, aes(x=assaults_df$long,y=assaults_df$lat),size = 0.9)
